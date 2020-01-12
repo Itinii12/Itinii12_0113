@@ -14,8 +14,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	DrawPixel(320, 240, GetColor(255, 255, 255));	// ì_Çë≈Ç¬
 
-	if (result == DX_CHANGESCREEN_OK) {
-		DrawString(250, 240, -16, "Succsess", GetColor(255, 255, 255));
+	if (Result == DX_CHANGESCREEN_OK) {
+		DrawString(250, 240,"Succsess", GetColor(255, 255, 255));
 	}
 	WaitKey();				// ÉLÅ[ì¸óÕë“Çø
 
