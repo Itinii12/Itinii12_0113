@@ -7,50 +7,75 @@
 #define GREEN GetColor(0,255,0)
 #define BLUE  GetColor(0,0,255)
 
-//任意のメッセージを表示する関数
+//フラグ名称定義
+enum FLAG_NAME{
+	GAME_END,
+	TAROU_TALK,
+	YAMADA_TALK,
+	FLAG_MAX
+};
+bool FLAGS[FLAG_MAX];
 
-void disp_message(char* charname,char* msg) {
-	DrawBox(30, 300, 100, 330, BLUE, TRUE);			//NameBoxを描画
-	DrawBox(10, 320, 630, 470, BLUE, TRUE);			//MsgBoxを描画
-	DrawString(35, 305, charname, WHITE);
-	DrawString(20, 350, msg, WHITE);
+//任意のメッセージを表示する関数
+void disp_msg(const char* charname,const char* msg) {
+
+	DrawBox(30, 295, 100, 325, BLUE, TRUE);	//NameBoxを描画
+	DrawBox(30, 295, 100, 325, WHITE, FALSE);
+	DrawBox(10, 320, 630, 470, BLUE, TRUE);	//MsgBoxを描画
+	DrawBox(10, 320, 630, 470, WHITE, FALSE);
+
+	DrawString(35, 300, charname, WHITE);	//キャラ名表示
+	DrawString(20, 340, msg, WHITE);		//メッセージ表示
+
+	ScreenFlip();
 	WaitKey();
-	DrawBox(0, 0, 1000, 1000, BLACK, TRUE);		//画面表示リセット
+	ClearDrawScreen();
+	ScreenFlip();
 }
 
 // プログラムは WinMain から始まります
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-	int Result = 0;
+	//変数定義部
+	int Result = 0;	 //スクリーン変更結果
+	int Picture = 0; //画像表示ハンドル
+	int x = 0;
+	int y = 0;
 
-	Result = ChangeWindowMode(TRUE);	//ウィンドウサイズ変更
+	Result = ChangeWindowMode(TRUE);
 
-	if (DxLib_Init() == -1)		// ＤＸライブラリ初期化処理
-	{
-		return -1;			// エラーが起きたら直ちに終了
+	if (DxLib_Init() == -1){  
+		return -1;			  
 	}
-
-	DrawPixel(320, 240, WHITE);	// 点を打つ
+	SetDrawScreen(DX_SCREEN_BACK);
 
 	if (Result == DX_CHANGESCREEN_OK) {
-		DrawString(10, 10, "Succsess", WHITE);	//ウィンドウサイズの変更に成功したなら、Succsessを表示
+		DrawString(10, 10, "画面サイズ変更に成功しました\n続行するには何かキーを押してください...", WHITE);
+		ScreenFlip();
 	}
 
-	WaitKey();				// キー入力待ち
+	WaitKey();
+	ClearDrawScreen();
 
-	DrawBox(0, 0, 1000, 1000, BLACK, TRUE);		//画面表示リセット
+	//表示画像ハンドル読み込み
+	Picture = LoadGraph("Picture/walking6_oldwoman.png");
 
-	WaitKey();				// キー入力待ち
+	//メイン処理部開始
+	while (FLAGS[GAME_END] == 0) {
+		//キー処理部
+		if (CheckHitKey(KEY_INPUT_UP) == 1)     y -= 10;	//上キー
+		if (CheckHitKey(KEY_INPUT_DOWN) == 1)   y += 10;	//下キー
+		if (CheckHitKey(KEY_INPUT_RIGHT) == 1)  x += 10;	//右キー
+		if (CheckHitKey(KEY_INPUT_LEFT) == 1)   x -= 10;	//左キー
 
-	char name[10] = "Taro";
-	char msg[50] = "ABCDE";
-
-	disp_message(name,msg);
-	//次回の課題はココでいちいち宣言しなおさないで、指定した名前とメッセージを表示させるコードにすること
-	char name2[10]= "Hanako";
-	char msg2[50] = "FGHJK";
-
-	disp_message(name2, msg2);
+		if (CheckHitKey(KEY_INPUT_Z) == 1) {				//Zキー
+			disp_msg("HANAKO", "こんにちは！\n2行のテストメッセージです！");
+		}
+		if (CheckHitKey(KEY_INPUT_ESCAPE) == 1) FLAGS[GAME_END] = TRUE;	//ESCキー
+		ClearDrawScreen();
+		DrawExtendGraph(0+x, 0+y, 20+x, 20+y, Picture, TRUE);
+		ScreenFlip();
+	}
 
 	DxLib_End();				// ＤＸライブラリ使用の終了処理
 
