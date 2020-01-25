@@ -14,9 +14,11 @@ enum FLAG_NAME{
 	YAMADA_TALK,
 	FLAG_MAX
 };
-bool FLAGS[FLAG_MAX];
+bool FLAGS[FLAG_MAX];	//フラグ管理用の配列
 
 //任意のメッセージを表示する関数
+//次回課題:メッセージ表示した後に、メッセージをウィンドウだけ消す
+//+消すときにはZキーを押したときだけ消すようにし、連続でメッセージが出ないようにする。
 void disp_msg(const char* charname,const char* msg) {
 
 	DrawBox(30, 295, 100, 325, BLUE, TRUE);	//NameBoxを描画
@@ -37,25 +39,24 @@ void disp_msg(const char* charname,const char* msg) {
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
 	//変数定義部
-	int Result = 0;	 //スクリーン変更結果
 	int Picture = 0; //画像表示ハンドル
 	int x = 0;
 	int y = 0;
 
-	Result = ChangeWindowMode(TRUE);
-
+	ChangeWindowMode(TRUE);	//画面サイズをウィンドウモードに
 	if (DxLib_Init() == -1){  
 		return -1;			  
 	}
-	SetDrawScreen(DX_SCREEN_BACK);
+	SetDrawScreen(DX_SCREEN_BACK);	//描画画面を裏に
 
-	if (Result == DX_CHANGESCREEN_OK) {
-		DrawString(10, 10, "画面サイズ変更に成功しました\n続行するには何かキーを押してください...", WHITE);
-		ScreenFlip();
-	}
-
+	//タイトル画面処理
+	LoadGraphScreen(0,0,"Picture/title.bmp",TRUE);
+	DrawString(100,260,"ゲームを開始するには何かキーを押してください...",BLACK);
+	ScreenFlip();
 	WaitKey();
+
 	ClearDrawScreen();
+	ScreenFlip();
 
 	//表示画像ハンドル読み込み
 	Picture = LoadGraph("Picture/walking6_oldwoman.png");
@@ -67,13 +68,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		if (CheckHitKey(KEY_INPUT_DOWN) == 1)   y += 10;	//下キー
 		if (CheckHitKey(KEY_INPUT_RIGHT) == 1)  x += 10;	//右キー
 		if (CheckHitKey(KEY_INPUT_LEFT) == 1)   x -= 10;	//左キー
+		//境界値処理
+		if (y <= 0)y = 0;
+		if (x <= 0)x = 0;
+		if (y >= 450)y = 450;
+		if (x >= 610)x = 610;
 
 		if (CheckHitKey(KEY_INPUT_Z) == 1) {				//Zキー
 			disp_msg("HANAKO", "こんにちは！\n2行のテストメッセージです！");
 		}
 		if (CheckHitKey(KEY_INPUT_ESCAPE) == 1) FLAGS[GAME_END] = TRUE;	//ESCキー
+
+		WaitTimer(10);
 		ClearDrawScreen();
-		DrawExtendGraph(0+x, 0+y, 20+x, 20+y, Picture, TRUE);
+		DrawExtendGraph(0+x, 0+y, 30+x, 30+y, Picture, TRUE);
 		ScreenFlip();
 	}
 
