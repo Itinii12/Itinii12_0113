@@ -151,7 +151,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="DrawPixcel.cpp" />
+    <ClCompile Include="Code_Main\MainCode.cpp" />
+    <ClCompile Include="Code_MakeGraphic\MapCreate.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Code_MakeGraphic\MapCreate.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
