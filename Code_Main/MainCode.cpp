@@ -1,9 +1,9 @@
 //次の課題
-//地形生成と当たり判定
-//→読み込みは出来たんだけど、位置ずれとか色味がどうも変　解決方法模索中
+//画面更新が地形+キャラだと上手く行ってないのでどうにかする(おばちゃんが点滅しちゃってる)
+//当たり判定追加する
 
 //テスト用定義
-#define TEST
+//#define TEST
 
 #include "DxLib.h"
 #include <iostream>
@@ -44,7 +44,7 @@ Charactor Obatyan;
 
 //プロトタイプ宣言
 void disp_msg(const char* charname, const char* msg);
-bool create_map();
+bool create_map(const char* map_file_name);
 
 //----------//
 //メイン処理//
@@ -64,9 +64,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	//テスト用
 #ifdef TEST
 	bool test = 0;
-	test = create_map();
+	test = create_map("Picture/Map01.bmp");
 	if (test == TRUE) {
-		DrawString(200, 360, "マップ読み込み成功", RED);
+		DrawString(200, 450, "マップ読み込み成功", RED);
 	}
 	else {
 		DrawString(200, 360, "マップ読み込み失敗", RED);
@@ -106,6 +106,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 		WaitTimer(10);
 		ClearDrawScreen();
+		create_map("Picture/Map01.bmp");
+		WaitTimer(10);
 		DrawExtendGraph(0 + Obatyan.chara_x, 0 + Obatyan.chara_y, 30 + Obatyan.chara_x, 30 + Obatyan.chara_y, Obatyan.chara_pic, TRUE);
 		ScreenFlip();
 	}
@@ -138,6 +140,7 @@ void disp_msg(const char* charname, const char* msg) {
 
 	//これだと全部一回消えちゃうので、キャラ画像を再表示させておく。
 	ClearDrawScreen();
+	create_map("Picture/Map01.bmp");
 	DrawExtendGraph(0 + Obatyan.chara_x, 0 + Obatyan.chara_y, 30 + Obatyan.chara_x, 30 + Obatyan.chara_y, Obatyan.chara_pic, TRUE);
 	ScreenFlip();
 	//次のキー入力が早すぎると変な挙動になるのでちょっと待つ
@@ -145,19 +148,23 @@ void disp_msg(const char* charname, const char* msg) {
 }
 
 //地形生成関数
-//方針:標準関数のfopen使って、bitmapイメージからマップ生成
 //１ピクセル毎のRGBを取得して、画面左上から埋めていく
-bool create_map() {
+//使用するのは24bitBMPファイル
+bool create_map(const char* map_file_name) {
 	std::FILE* fp;	      //マップデータ用のファイルポインタ
 	errno_t err_code;     //各関数のエラーコード格納用
 	BITMAPFILEHEADER bf;  //BitMapファイルヘッダー
 	BITMAPINFOHEADER bi;  //BitMap情報ヘッダー
-	RGBQUAD         rgb;  //BitMapRGBデータ
-	int x, y = 0;
-	u_int color = 0;
+	//RGBQUAD rgb;		  //パレットデータは色ビット数が1,4,8の場合のみ存在。今回取り扱うのは24bitのBMPなので不要。
+	int x, y = 0;		  //走査用
+	u_int color = 0;      //色データ作成用
+	typedef struct {
+		u_char b,g,r;
+	}BGR_MAP;
+	BGR_MAP         bgr_map;  //BitMapBGRデータ(RGBではない)(RGBではない)
 
 	//マップファイルを開く
-	err_code = fopen_s(&fp, "Picture/Map01.bmp", "r");
+	err_code = fopen_s(&fp, map_file_name, "r");
 	if (err_code != 0) {
 		return FALSE;
 	}
@@ -168,18 +175,17 @@ bool create_map() {
 	err_code = fread_s(&bi, sizeof bi, sizeof BITMAPINFOHEADER, 1, fp);
 	long map_width = bi.biWidth;	//よこ
 	long map_height = bi.biHeight;	//たて
-	//DrawFormatString(100, 100, RED, "画像の幅:%ld", map_width);
-	//DrawFormatString(100, 130, RED, "画像の高さ:%ld", map_height);
 
-	//サイズ分読み込む
-	for (x = 0; x <= map_width; x++) {
-		for (y = 0; y <= map_height; y++) {
-			err_code = fread_s(&rgb, sizeof rgb, sizeof RGBQUAD, 1, fp);
-			color = GetColor((int)rgb.rgbRed, (int)rgb.rgbGreen, (int)rgb.rgbBlue);
-			DrawPixel(x, y, color);
+	//画像データをサイズ分読み込む
+	for (y = 0; y <= map_height; y++) {
+		for (x = 0; x < map_width; x++) {
+			err_code = fread_s(&bgr_map, sizeof bgr_map, sizeof BGR_MAP, 1, fp);
+			color = GetColor((int)bgr_map.r, (int)bgr_map.g, (int)bgr_map.b);
+			DrawPixel(x, map_height-y,color);
 		}
 	}
-
+	ScreenFlip();
 	fclose(fp);
+
 	return TRUE;
 }
