@@ -1,6 +1,7 @@
 //次の課題
 //画面更新が地形+キャラだと上手く行ってないのでどうにかする(おばちゃんが点滅しちゃってる)
-//当たり判定追加する
+//→基本方針は、それぞれを表示させるための描画領域をMakeScreenで確保して、適切なタイミングで更新させること
+//　ただ、ScreenFlipの仕様が表画面⇔裏画面の反映のみだとややこしいことになる、要検証。
 
 //テスト用定義
 //#define TEST
@@ -83,11 +84,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	ClearDrawScreen();
 	ScreenFlip();
 
+	int chara_window;
+	int map_window;
 	//表示画像ハンドル読み込み
 	Obatyan.chara_pic = LoadGraph("Picture/walking6_oldwoman.png");
-
+	//一先ずMAP固定として表示しておく
+	create_map("Picture/Map01.bmp");
 	//メイン処理部開始
 	while (FLAGS[GAME_END] == 0) {
+		//画面領域の確保
+		chara_window = MakeScreen(30, 30, FALSE);
 		//キー処理部
 		if (CheckHitKey(KEY_INPUT_UP) == 1)     Obatyan.chara_y -= 10;	//上キー
 		if (CheckHitKey(KEY_INPUT_DOWN) == 1)   Obatyan.chara_y += 10;	//下キー
@@ -105,9 +111,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		if (CheckHitKey(KEY_INPUT_ESCAPE) == 1) FLAGS[GAME_END] = TRUE;	//ESCキー
 
 		WaitTimer(10);
-		ClearDrawScreen();
-		create_map("Picture/Map01.bmp");
-		WaitTimer(10);
+
+		//キャラ領域のみクリア
+		DeleteGraph(chara_window);
+		ScreenFlip();
+		//キャラ領域を再確保して、指定の座標に描画する
+		SetDrawScreen(chara_window);
 		DrawExtendGraph(0 + Obatyan.chara_x, 0 + Obatyan.chara_y, 30 + Obatyan.chara_x, 30 + Obatyan.chara_y, Obatyan.chara_pic, TRUE);
 		ScreenFlip();
 	}
@@ -119,6 +128,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 //任意のメッセージを表示する関数
 void disp_msg(const char* charname, const char* msg) {
+	//メッセージ表示領域の確保
+	int t_handle;
+	t_handle = MakeScreen(640, 480, FALSE);
+	//描画先をメッセージ表示領域に変更
+	SetDrawScreen(t_handle);
 	//NameBoxを描画
 	DrawBox(30, 295, 100, 325, BLUE, TRUE);
 	DrawBox(30, 295, 100, 325, WHITE, FALSE);
@@ -139,9 +153,12 @@ void disp_msg(const char* charname, const char* msg) {
 	}
 
 	//これだと全部一回消えちゃうので、キャラ画像を再表示させておく。
-	ClearDrawScreen();
-	create_map("Picture/Map01.bmp");
-	DrawExtendGraph(0 + Obatyan.chara_x, 0 + Obatyan.chara_y, 30 + Obatyan.chara_x, 30 + Obatyan.chara_y, Obatyan.chara_pic, TRUE);
+	//ClearDrawScreen();
+	//create_map("Picture/Map01.bmp");
+	//DrawExtendGraph(0 + Obatyan.chara_x, 0 + Obatyan.chara_y, 30 + Obatyan.chara_x, 30 + Obatyan.chara_y, Obatyan.chara_pic, TRUE);
+	//メッセージ表示領域の解放
+	DeleteGraph(t_handle);
+	SetDrawScreen(DX_SCREEN_BACK);
 	ScreenFlip();
 	//次のキー入力が早すぎると変な挙動になるのでちょっと待つ
 	WaitTimer(100);
@@ -164,28 +181,31 @@ bool create_map(const char* map_file_name) {
 	BGR_MAP         bgr_map;  //BitMapBGRデータ(RGBではない)(RGBではない)
 
 	//マップファイルを開く
-	err_code = fopen_s(&fp, map_file_name, "r");
-	if (err_code != 0) {
+	fopen_s(&fp, map_file_name, "r");
+	if (fp != NULL) {
+		//ファイルヘッダ読み込み
+		err_code = fread_s(&bf, sizeof bf, sizeof BITMAPFILEHEADER, 1, fp);
+		//情報ヘッダ読み込み
+		err_code = fread_s(&bi, sizeof bi, sizeof BITMAPINFOHEADER, 1, fp);
+		long map_width = bi.biWidth;	//よこ
+		long map_height = bi.biHeight;	//たて
+
+		//画像データをサイズ分読み込む
+		for (y = 0; y <= map_height; y++) {
+			for (x = 0; x < map_width; x++) {
+				err_code = fread_s(&bgr_map, sizeof bgr_map, sizeof BGR_MAP, 1, fp);
+				color = GetColor((int)bgr_map.r, (int)bgr_map.g, (int)bgr_map.b);
+				DrawPixel(x, map_height - y, color);
+			}
+		}
+		ScreenFlip();
+		fclose(fp);
+		return TRUE;
+	}
+	else {
+		//ヌルポの場合
 		return FALSE;
 	}
 
-	//ファイルヘッダ読み込み
-	err_code = fread_s(&bf, sizeof bf, sizeof BITMAPFILEHEADER, 1, fp);
-	//情報ヘッダ読み込み
-	err_code = fread_s(&bi, sizeof bi, sizeof BITMAPINFOHEADER, 1, fp);
-	long map_width = bi.biWidth;	//よこ
-	long map_height = bi.biHeight;	//たて
-
-	//画像データをサイズ分読み込む
-	for (y = 0; y <= map_height; y++) {
-		for (x = 0; x < map_width; x++) {
-			err_code = fread_s(&bgr_map, sizeof bgr_map, sizeof BGR_MAP, 1, fp);
-			color = GetColor((int)bgr_map.r, (int)bgr_map.g, (int)bgr_map.b);
-			DrawPixel(x, map_height-y,color);
-		}
-	}
-	ScreenFlip();
-	fclose(fp);
-
-	return TRUE;
+	
 }
