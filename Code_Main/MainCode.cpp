@@ -62,19 +62,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	//描画画面を裏に
 	SetDrawScreen(DX_SCREEN_BACK);
 
-	//テスト用
-#ifdef TEST
-	bool test = 0;
-	test = create_map("Picture/Map01.bmp");
-	if (test == TRUE) {
-		DrawString(200, 450, "マップ読み込み成功", RED);
-	}
-	else {
-		DrawString(200, 360, "マップ読み込み失敗", RED);
-	}
-	ScreenFlip();
-	WaitKey();
-#endif
 	//タイトル画面処理
 	LoadGraphScreen(0, 0, "Picture/title.bmp", TRUE);
 	DrawString(100, 260, "ゲームを開始するには何かキーを押してください...", BLACK);
@@ -84,16 +71,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	ClearDrawScreen();
 	ScreenFlip();
 
-	int chara_window;
-	int map_window;
 	//表示画像ハンドル読み込み
 	Obatyan.chara_pic = LoadGraph("Picture/walking6_oldwoman.png");
-	//一先ずMAP固定として表示しておく
-	create_map("Picture/Map01.bmp");
 	//メイン処理部開始
 	while (FLAGS[GAME_END] == 0) {
-		//画面領域の確保
-		chara_window = MakeScreen(30, 30, FALSE);
 		//キー処理部
 		if (CheckHitKey(KEY_INPUT_UP) == 1)     Obatyan.chara_y -= 10;	//上キー
 		if (CheckHitKey(KEY_INPUT_DOWN) == 1)   Obatyan.chara_y += 10;	//下キー
@@ -110,13 +91,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		}
 		if (CheckHitKey(KEY_INPUT_ESCAPE) == 1) FLAGS[GAME_END] = TRUE;	//ESCキー
 
-		WaitTimer(10);
+		WaitTimer(1);
 
-		//キャラ領域のみクリア
-		DeleteGraph(chara_window);
-		ScreenFlip();
-		//キャラ領域を再確保して、指定の座標に描画する
-		SetDrawScreen(chara_window);
+		ClearDrawScreen();
+		create_map("Picture/Map01.bmp");
+		//座標に描画する
 		DrawExtendGraph(0 + Obatyan.chara_x, 0 + Obatyan.chara_y, 30 + Obatyan.chara_x, 30 + Obatyan.chara_y, Obatyan.chara_pic, TRUE);
 		ScreenFlip();
 	}
@@ -128,11 +107,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 //任意のメッセージを表示する関数
 void disp_msg(const char* charname, const char* msg) {
-	//メッセージ表示領域の確保
-	int t_handle;
-	t_handle = MakeScreen(640, 480, FALSE);
-	//描画先をメッセージ表示領域に変更
-	SetDrawScreen(t_handle);
 	//NameBoxを描画
 	DrawBox(30, 295, 100, 325, BLUE, TRUE);
 	DrawBox(30, 295, 100, 325, WHITE, FALSE);
@@ -152,16 +126,11 @@ void disp_msg(const char* charname, const char* msg) {
 	while (CheckHitKey(KEY_INPUT_Z) == 0) {
 	}
 
-	//これだと全部一回消えちゃうので、キャラ画像を再表示させておく。
-	//ClearDrawScreen();
-	//create_map("Picture/Map01.bmp");
-	//DrawExtendGraph(0 + Obatyan.chara_x, 0 + Obatyan.chara_y, 30 + Obatyan.chara_x, 30 + Obatyan.chara_y, Obatyan.chara_pic, TRUE);
-	//メッセージ表示領域の解放
-	DeleteGraph(t_handle);
-	SetDrawScreen(DX_SCREEN_BACK);
+	ClearDrawScreen();
+	create_map("Picture/Map01.bmp");
+	//座標に描画する
+	DrawExtendGraph(0 + Obatyan.chara_x, 0 + Obatyan.chara_y, 30 + Obatyan.chara_x, 30 + Obatyan.chara_y, Obatyan.chara_pic, TRUE);
 	ScreenFlip();
-	//次のキー入力が早すぎると変な挙動になるのでちょっと待つ
-	WaitTimer(100);
 }
 
 //地形生成関数
@@ -198,7 +167,6 @@ bool create_map(const char* map_file_name) {
 				DrawPixel(x, map_height - y, color);
 			}
 		}
-		ScreenFlip();
 		fclose(fp);
 		return TRUE;
 	}
